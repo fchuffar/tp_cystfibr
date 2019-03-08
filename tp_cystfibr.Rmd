@@ -28,8 +28,9 @@ x = d[,-2]
 # Pairwise plots
 
 ```{r echo=TRUE, results="verbatim"}
-pairs(d, gap=0)
+pairs(x, gap=0)
 lattice::levelplot(abs(cor(x)))
+hist(x$bmp)
 ```
 
 # K-means
@@ -37,28 +38,50 @@ lattice::levelplot(abs(cor(x)))
 ```{r echo=TRUE, results="verbatim"}
 for (centers in 2:5) {
   for (i in 1:3) {
-    k = kmeans(x, centers=centers)
-    pairs(x, gap=0, col=k$cluster, main=centers)
+    k = kmeans(x, centers=centers);  pairs(x, gap=0, col=k$cluster, main=paste0("centers=", centers))
   }
 }
+
+cs = rep(2:20, each=100)
+res = sapply(cs, function(c) {
+  k = kmeans(x, centers=c);  
+  ret = k$betweenss / k$totss
+  return(ret)
+})
+plot(jitter(cs), jitter(res))
 ```
 
 # PCA
 
 ```{r}
+k2 = kmeans(x, centers=2)
+set.seed(1)
+k3 = kmeans(x, centers=3)
+k3
+k4 = kmeans(x, centers=4)
+k4
+
+# reduce the matrice (normalization)
 mat = x
-pca = prcomp(mat, scale=FALSE)
+pca = prcomp(mat, scale=TRUE)
 v = pca$sdev * pca$sdev
 p = v / sum(v) * 100
 
-# layout(matrix(1:6,2), respect=TRUE)
-layout(matrix(1:2,1), respect=TRUE)
+
+layout(matrix(1:6,2), respect=TRUE)
+# layout(matrix(1:2,1), respect=TRUE)
 barplot(p)
 
-for (i in c(1, 3)) {
+for (i in 1:5) {
   j = i+1
-  plot(pca$x[,i], pca$x[,j], xlab=paste0("PC", i, "(", signif(p[i], 3), "%)"), ylab=paste0("PC", j, "(", signif(p[j], 3), "%)"), pch=16)  
+  plot(pca$x[,i], pca$x[,j], xlab=paste0("PC", i, "(", signif(p[i], 3), "%)"), ylab=paste0("PC", j, "(", signif(p[j], 3), "%)"), pch=16, col=k2$cluster)  
 }
+
+for (i in 1:6) {  
+  barplot(pca$rotation[,1], main=paste("PC", i, "(", signif(p[i], 3), "%)", sep=""))
+}
+# If paste0 do not exists: 
+# paste0 = paste(sep="", ...)
 ```
 
 # ANOVA 
