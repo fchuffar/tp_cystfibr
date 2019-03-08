@@ -1,0 +1,79 @@
+---
+title: "Practical session on ISwR::cystfibr dataset"
+author: "Florent Chuffart & Nicolas Glade"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+---
+
+
+
+```{r, echo=FALSE, eval=TRUE, label="loading libraries"}
+knitr::opts_chunk$set(collapse=TRUE, comment = "#>", fig.width=9, fig.height=6, eval=TRUE, echo=FALSE, results="hide")
+```
+# Loading data
+
+```{r echo=TRUE, results="verbatim"}
+d = ISwR::cystfibr
+head(d)
+dim(d)
+# removing sex
+x = d[,-2]
+```
+
+# Pairwise plots
+
+```{r echo=TRUE, results="verbatim"}
+pairs(d, gap=0)
+lattice::levelplot(abs(cor(x)))
+```
+
+# K-means
+
+```{r echo=TRUE, results="verbatim"}
+for (centers in 2:5) {
+  for (i in 1:3) {
+    k = kmeans(x, centers=centers)
+    pairs(x, gap=0, col=k$cluster, main=centers)
+  }
+}
+```
+
+# PCA
+
+```{r}
+mat = x
+pca = prcomp(mat, scale=FALSE)
+v = pca$sdev * pca$sdev
+p = v / sum(v) * 100
+
+# layout(matrix(1:6,2), respect=TRUE)
+layout(matrix(1:2,1), respect=TRUE)
+barplot(p)
+
+for (i in c(1, 3)) {
+  j = i+1
+  plot(pca$x[,i], pca$x[,j], xlab=paste0("PC", i, "(", signif(p[i], 3), "%)"), ylab=paste0("PC", j, "(", signif(p[j], 3), "%)"), pch=16)  
+}
+```
+
+# ANOVA 
+
+
+
+
+# Discussion
+
+...
+
+
+# Session Information
+
+```{r, results="verbatim"}
+sessionInfo()
+```
+
