@@ -104,7 +104,8 @@ lattice::levelplot((cor(d)))
 
 ```{r echo=TRUE, results="verbatim", fig.width=9, fig.height=9}
 centers = 2
-k = kmeans(d, centers=centers);  pairs(d, gap=0, col=k$cluster, main=paste0("centers=", centers))
+k = kmeans(d, centers=centers);  
+# pairs(d, gap=0, col=k$cluster, main=paste0("centers=", centers))
 k
 
 cs = rep(2:20, each=100)
@@ -156,6 +157,43 @@ m = lm(pemax~age+height+weight+bmp+fev1+rv+frc+tlc, d)
 s = step(m)
 shapiro.test(s$res)
 summary(s)
+
+
+m = lm(formula = pemax ~ weight + bmp + fev1 + rv, data = d)
+summary(m)$r.squared
+extractAIC(m)
+
+m1 = lm(formula = pemax ~ age + bmp + fev1 + rv, data = d)
+summary(m1)$r.squared
+extractAIC(m1)
+
+m3 = lm(formula = pemax ~ weight + bmp + fev1 + frc, data = d)
+summary(m3)$r.squared
+extractAIC(m3)
+
+m4 = lm(formula = pemax ~ weight + bmp + fev1, data = d)
+summary(m4)$r.squared
+extractAIC(m4)
+anova(m4)
+
+d$bmp_bin = d$bmp < 80
+m = lm(formula = pemax ~ weight + bmp_bin + fev1 + rv, data = d)
+summary(m)$r.squared
+extractAIC(m)
+
+
+
+
+
+
+
+
+m = lm(formula = pemax ~ weight + fev1 + bmp + rv, data = d)
+anova(m)
+
+m = lm(formula = pemax ~ weight + rv + fev1 + bmp, data = d)
+anova(m)
+
 ```
 
 
