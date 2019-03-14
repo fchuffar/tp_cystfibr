@@ -1,6 +1,6 @@
 ---
 title: "Practical session on ISwR::cystfibr dataset"
-author: "Florent Chuffart & Nicolas Glade"
+author: "Magali Richard & Florent Chuffart & Nicolas Glade"
 date: "`r Sys.Date()`"
 output: 
   rmarkdown::html_document:
@@ -15,77 +15,148 @@ output:
 ```{r, echo=FALSE, eval=TRUE, label="loading libraries"}
 knitr::opts_chunk$set(collapse=TRUE, comment = "#>", fig.width=9, fig.height=6, eval=TRUE, echo=FALSE, results="hide")
 ```
-# Loading data
+
+# Overview
+
+The goal of this practical session is to explore data analysis methods based on variance and correlation. 
+
+Use will analyse `ISwR::cystfibr`  dataset and use k-means, PCA and ANOVA methods.  
+
+```
+# ?ISwR::cystfibr
+
+cystfibr                 package:ISwR                  R Documentation
+
+Cystic fibrosis lung function data
+
+Description:
+
+     The ‘cystfibr’ data frame has 25 rows and 10 columns.  It contains
+     lung function data for cystic fibrosis patients (7-23 years old).
+
+Usage:
+
+     cystfibr
+     
+Format:
+
+     This data frame contains the following columns:
+
+     ‘age’ a numeric vector, age in years.
+
+     ‘sex’ a numeric vector code, 0: male, 1:female.
+
+     ‘height’ a numeric vector, height (cm).
+
+     ‘weight’ a numeric vector, weight (kg).
+
+     ‘bmp’ a numeric vector, body mass (% of normal).
+
+     ‘fev1’ a numeric vector, forced expiratory volume.
+
+     ‘rv’ a numeric vector, residual volume.
+
+     ‘frc’ a numeric vector, functional residual capacity.
+
+     ‘tlc’ a numeric vector, total lung capacity.
+
+     ‘pemax’ a numeric vector, maximum expiratory pressure.
+
+Source:
+
+     D.G. Altman (1991), _Practical Statistics for Medical Research_,
+     Table 12.11, Chapman & Hall.
+
+References:
+
+     O’Neill et al. (1983), The effects of chronic hyperinflation,
+     nutritional status, and posture on respiratory muscle strength in
+     cystic fibrosis, _Am. Rev. Respir. Dis.,_ 128:1051-1054.
+
+```
+
+We do not consider `sex` variable.
+
+We considere `pemax` as disease severity indicator.
+
+We try to explain `pemax` according to other variables.
+
 
 ```{r echo=TRUE, results="verbatim"}
 d = ISwR::cystfibr
 head(d)
 dim(d)
 # removing sex
-x = d[,-2]
+d = d[,-2]
 ```
 
-# Pairwise plots
 
-```{r echo=TRUE, results="verbatim"}
-pairs(x, gap=0)
-lattice::levelplot(abs(cor(x)))
-hist(x$bmp)
+# Methods
+
+## Correlation
+
+```{r echo=TRUE, results="verbatim", fig.width=9, fig.height=9}
+pairs(d, gap=0)
+lattice::levelplot((cor(d)))
 ```
 
-# K-means
+## K-means
 
-```{r echo=TRUE, results="verbatim"}
-for (centers in 2:5) {
-  for (i in 1:3) {
-    k = kmeans(x, centers=centers);  pairs(x, gap=0, col=k$cluster, main=paste0("centers=", centers))
-  }
-}
+```{r echo=TRUE, results="verbatim", fig.width=9, fig.height=9}
+centers = 2
+k = kmeans(d, centers=centers);  pairs(d, gap=0, col=k$cluster, main=paste0("centers=", centers))
+k
 
 cs = rep(2:20, each=100)
 res = sapply(cs, function(c) {
-  k = kmeans(x, centers=c);  
+  k = kmeans(d, centers=c);  
   ret = k$betweenss / k$totss
   return(ret)
 })
 plot(jitter(cs), jitter(res))
 ```
 
-# PCA
+
+## PCA
 
 ```{r}
-k2 = kmeans(x, centers=2)
-set.seed(1)
-k3 = kmeans(x, centers=3)
-k3
-k4 = kmeans(x, centers=4)
-k4
-
-# reduce the matrice (normalization)
-mat = x
+# mat = x[,-9]
+mat = d
 pca = prcomp(mat, scale=TRUE)
 v = pca$sdev * pca$sdev
 p = v / sum(v) * 100
 
-
-layout(matrix(1:6,2), respect=TRUE)
-# layout(matrix(1:2,1), respect=TRUE)
+# layout(matrix(1:6,2), respect=TRUE)
+layout(matrix(1:2,1), respect=TRUE)
 barplot(p)
 
 for (i in 1:5) {
   j = i+1
-  plot(pca$x[,i], pca$x[,j], xlab=paste0("PC", i, "(", signif(p[i], 3), "%)"), ylab=paste0("PC", j, "(", signif(p[j], 3), "%)"), pch=16, col=k2$cluster)  
+  plot(pca$x[,i], pca$x[,j], xlab=paste0("PC", i, "(", signif(p[i], 3), "%)"), ylab=paste0("PC", j, "(", signif(p[j], 3), "%)"), pch=16)  
+  scale_factor = min(abs(c(min(c(pca$x[,i], pca$x[,j])), max(c(pca$x[,i], pca$x[,j])))))  
+  # scale_factor = min(abs(c(max(min(pca$x[,i]), min(pca$x[,j])), min(max(pca$x[,i]), max(pca$x[,j])))))
+  plotrix::draw.ellipse(0,0,scale_factor,scale_factor, lty=2, border="grey")
+  arrows(0,0,pca$rotation[,i]*scale_factor, pca$rotation[,j]*scale_factor, col="grey")
+  text(pca$rotation[,i]*scale_factor, pca$rotation[,j]*scale_factor, rownames(pca$rotation))
 }
-
-for (i in 1:6) {  
-  barplot(pca$rotation[,1], main=paste("PC", i, "(", signif(p[i], 3), "%)", sep=""))
-}
-# If paste0 do not exists: 
-# paste0 = paste(sep="", ...)
 ```
 
-# ANOVA 
+## Linear Regression 
 
+
+### Variable selection
+
+step backward
+
+$$AIC=-log(L) + 2k$$
+
+
+```{r echp=TRUE, results="verbatim"}
+m = lm(pemax~age+height+weight+bmp+fev1+rv+frc+tlc, d)
+s = step(m)
+shapiro.test(s$res)
+summary(s)
+```
 
 
 
